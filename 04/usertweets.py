@@ -23,8 +23,11 @@ class UserTweets(object):
         Use _get_tweets() helper to get a list of tweets.
         Save the tweets as data/<handle>.csv"""
         # ...
+        self.handle = handle
+        self.max_id = max_id
         self.auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
         self.auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
+        self.output_file = 'data/{}.csv'.format(self.handle)
         self.api = tweepy.API(self.auth)
         self._tweets = list(self._get_tweets())
         self._save_tweets()
@@ -34,31 +37,42 @@ class UserTweets(object):
         See tweepy API reference: http://docs.tweepy.org/en/v3.5.0/api.html
         Use a list comprehension / generator to filter out fields
         id_str created_at text (optionally use namedtuple)"""
-        for tweet in self.api.user_timeline():
+        #if not self.max_id:
+        #    for tweet in self.api.user_timeline(self.handle):
+        #        yield Tweet(id_str=tweet.id_str, created_at=tweet.created_at, text=tweet.text)
+        #else:
+        #tweets = [Tweet(id_str=tweet.id_str, created_at=tweet.created_at, text=tweet.text)
+        #            for tweet in self.api.user_timeline(self.handle, max_id=self.max_id)]
+        for tweet in self.api.user_timeline(self.handle, max_id=self.max_id):
+            #print(tweet)
             yield Tweet(id_str=tweet.id_str, created_at=tweet.created_at, text=tweet.text)
-
+        #return tweets
 
     def _save_tweets(self):
         """Use the csv module (csv.writer) to write out the tweets.
         If you use a namedtuple get the column names with Tweet._fields.
         Otherwise define them as: id_str created_at text
         You can use writerow for the header, writerows for the rows"""
-        pass
+        with open(self.output_file, 'w', newline='') as csvfile:
+            writer = csv.writer(csvfile, delimiter=',')
+            writer.writerow(Tweet._fields)
+            for row in self._tweets:
+                writer.writerow(row)
 
     def __len__(self):
         """See http://pybit.es/python-data-model.html"""
-        pass
+        return len(self._tweets)
 
     def __getitem__(self, pos):
         """See http://pybit.es/python-data-model.html"""
-        pass
+        return self._tweets[pos]
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
 
-#     for handle in ('pybites', '_juliansequeira', 'bbelderbos'):
-#         print('--- {} ---'.format(handle))
-#         user = UserTweets(handle)
-#         for tw in user[:5]:
-#             print(tw)
-#         print()
+    for handle in ('pybites', '_juliansequeira', 'bbelderbos'):
+        print('--- {} ---'.format(handle))
+        user = UserTweets(handle)
+        for tw in user[:5]:
+            print(tw)
+        print()
